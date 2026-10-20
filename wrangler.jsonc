@@ -1,0 +1,25 @@
+// Cloudflare config: https://developers.cloudflare.com/workers/wrangler/configuration/
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker name in the Cloudflare dashboard, or Git builds fail.
+  "name": "egypt-food-map",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page",
+    // Only the API runs the Worker. Every other path is a static file.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "egypt-food-map",
+      "database_id": "03461b59-ded7-49fc-bab5-b094b28dbb60",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
