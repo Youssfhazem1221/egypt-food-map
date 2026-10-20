@@ -7,8 +7,8 @@ Cheap food in Egypt with **real prices in EGP**. Every price shows the day someo
 | Hosting | Cloudflare Worker + static files, free plan |
 | Database | Cloudflare D1 `egypt-food-map` (spots, prices, submissions) |
 | Map | [MapLibre GL JS](https://maplibre.org/) 6.12, served from `public/vendor/` · tiles from [OpenFreeMap](https://openfreemap.org/) (free, no key) |
-| Deploys | Every push to `main` → Cloudflare builds and goes live |
-| Live URL | Shown in the Cloudflare dashboard after the first build (`egypt-food-map.<subdomain>.workers.dev`) |
+| Deploys | `npm run deploy` from a PC today. Once Git is connected (below): every push to `main` → Cloudflare builds and goes live |
+| Live URL | https://egypt-food-map.egypt-food-map.workers.dev |
 
 ## How a spot gets on the map
 
@@ -60,16 +60,19 @@ Add `--local` to any of these to use the local database.
 2. `npm run db:local`, then test.
 3. `npm run db:remote` **before** pushing code that needs the change.
 
-## One-time Cloudflare setup
+## One-time Cloudflare setup (auto-deploys)
 
-Dashboard → **Workers & Pages** → **Create application** → import the GitHub repo `egypt-food-map`.
+The Worker already exists (first deploy 2026-10-20 from a PC). Connect it to GitHub once:
+Dashboard → **Workers & Pages** → `egypt-food-map` → **Settings** → **Builds** → **Connect** → repo `egypt-food-map`.
 
 | Setting | Value |
 |---|---|
-| Project name | `egypt-food-map` (must match `name` in `wrangler.jsonc`, or builds fail) |
+| Branch | `main` |
 | Build command | `npm test` (a failing test stops the deploy) |
 | Deploy command | `npx wrangler deploy` (the default) |
 | Root directory | `/` |
+
+The Worker name must stay `egypt-food-map` (the `name` in `wrangler.jsonc`), or builds fail.
 
 If the first build fails with a permission error about D1: open **My Profile → API Tokens**, edit the token the build uses, and add **D1: Edit**.
 
