@@ -1,19 +1,19 @@
 {
-  "name": "egypt-food-map",
+  "name": "rkhees",
   "version": "0.1.0",
   "private": true,
   "description": "Cheap food in Egypt with real EGP prices. Crowdsourced, Arabic first.",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "wrangler pages dev --port 8787",
     "test": "node --test",
-    "check": "node --test && wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "check": "node --test && wrangler pages functions build --outdir .wrangler/functions-check",
     "db:local": "wrangler d1 migrations apply DB --local",
     "db:remote": "wrangler d1 migrations apply DB --remote",
     "db:seed-local": "wrangler d1 execute DB --local --file seeds/dev-only.sql",
     "review": "node scripts/review.mjs",
     "vendor": "node scripts/vendor.mjs",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler pages deploy --branch main"
   },
   "devDependencies": {
     "maplibre-gl": "6.12.0",
