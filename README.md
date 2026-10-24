@@ -17,6 +17,7 @@ visitor fills "ابعتلنا مكانك" → submissions (pending) → you revi
 ```
 
 - Nothing a visitor sends goes live without review.
+- Prices stay fresh: every spot asks "السعر لسه كده؟". A confirm counts right away ("اتأكد X مرات"); a new price waits for review.
 - Old prices stay in `prices`, so price changes can be tracked over time.
 
 ## Files
@@ -25,7 +26,11 @@ visitor fills "ابعتلنا مكانك" → submissions (pending) → you revi
 |---|---|
 | `public/` | The site: `index.html`, `app.js`, `styles.css`, `_headers` (security headers) |
 | `functions/api/[[route]].js` | Pages Functions entry: sends every `/api/*` request to `src/worker.js` |
-| `src/worker.js` | The API: `GET /api/spots`, `POST /api/submissions`, `GET /api/health` |
+| `functions/spot/[id].js` → `src/spot-page.js` | One page per spot at `/spot/<id>` (WhatsApp previews show name and price) |
+| `src/spots.js` | Live spots with current prices, check count and last check day (used by the API and spot pages) |
+| `public/kinds.js` | The food types list (chips, form, API, review tool) |
+| `public/checks.js` | The "السعر لسه كده؟" widget |
+| `src/worker.js` | The API: `GET /api/spots`, `POST /api/submissions`, `POST /api/checks`, `GET /api/health` |
 | `src/validate.js` | Checks form input (reads Arabic digits like ٢٥) |
 | `migrations/` | Database tables |
 | `scripts/review.mjs` | Approve or reject submissions from your PC |
@@ -52,6 +57,9 @@ npm test
 | You checked the price yourself | add `--team` |
 | Reject | `npm run review -- reject 12` |
 | See all spots | `npm run review -- spots` |
+| A reported new price goes live | `npm run review -- approve-price 7` |
+| Reject a reported price | `npm run review -- reject-price 7` |
+| Set a spot's food type | `npm run review -- kind 3 ful` (koshary, ful, liver, shawarma, hawawshi, feteer, fish, sweets, other) |
 
 Add `--local` to any of these to use the local database.
 
