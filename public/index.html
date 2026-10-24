@@ -3,14 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>أكل رخيص في مصر · بأسعار حقيقية</title>
-  <meta name="description" content="خريطة للأكل الرخيص في مصر بأسعار حقيقية بالجنيه، وكل سعر عليه تاريخ آخر مرة اتأكدنا منه.">
-  <meta name="theme-color" content="#c63f26">
+  <title>رخيص · ارخص و احلى أكل ف مصر</title>
+  <meta name="description" content="رخيص: أماكن أكل رخيصة في مصر بأسعار حقيقية بالجنيه، وكل سعر عليه تاريخ آخر مرة اتأكدنا منه.">
+  <meta name="theme-color" content="#eef4ec">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="أكل رخيص في مصر · بأسعار حقيقية">
+  <meta property="og:site_name" content="رخيص">
+  <meta property="og:title" content="رخيص · ارخص و احلى أكل ف مصر">
   <meta property="og:description" content="أماكن أكلها رخيص، بأسعار حقيقية بالجنيه وتاريخ آخر تأكيد.">
   <meta property="og:locale" content="ar_EG">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/baloo-bhaijaan-2-arabic-643bd83b.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/katibeh-arabic-b22f602a.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <link rel="modulepreload" href="/vendor/maplibre-gl-6.12.0/maplibre-gl.mjs">
   <link rel="modulepreload" href="/vendor/maplibre-gl-6.12.0/maplibre-gl-shared.mjs">
@@ -19,17 +22,18 @@
 <body>
   <header class="top">
     <div class="brand">
-      <h1>أكل رخيص <span>في مصر</span></h1>
-      <p class="tagline">أسعار حقيقية بالجنيه، وكل سعر عليه تاريخ آخر مرة اتأكدنا منه.</p>
+      <h1 class="mark">رخيص</h1>
+      <span class="url">rkhees.pages.dev</span>
+      <p class="tagline">ارخص و احلى أكل ف مصر, من تحت 150 جنيه</p>
     </div>
-    <a id="share-site" class="ghost" href="https://wa.me/" target="_blank" rel="noopener" aria-label="شارك الموقع على واتساب">شاركه</a>
+    <a id="share-site" class="share" href="https://wa.me/" target="_blank" rel="noopener" aria-label="شارك الموقع على واتساب">شاركه</a>
   </header>
 
   <main class="layout">
     <section class="map-pane" aria-label="الخريطة">
       <div id="map" class="map"></div>
       <p class="map-off" hidden>الخريطة مش راضية تفتح. القايمة شغالة عادي.</p>
-      <button id="near" class="chip chip-float" type="button">📍 قريب مني</button>
+      <button id="near" class="near" type="button">قريب مني</button>
     </section>
 
     <section class="list-pane" aria-labelledby="list-title">
@@ -37,8 +41,8 @@
       <div class="filters" role="group" aria-label="أقصى سعر">
         <button class="chip on" type="button" data-max="0" aria-pressed="true">الكل</button>
         <button class="chip" type="button" data-max="50" aria-pressed="false">لحد ٥٠ ج</button>
-        <button class="chip" type="button" data-max="75" aria-pressed="false">لحد ٧٥ ج</button>
         <button class="chip" type="button" data-max="100" aria-pressed="false">لحد ١٠٠ ج</button>
+        <button class="chip" type="button" data-max="150" aria-pressed="false">لحد ١٥٠ ج</button>
       </div>
       <p id="status" class="status" role="status">بنحمّل الأماكن…</p>
       <ol id="spots" class="spots"></ol>
@@ -51,7 +55,7 @@
     <p>الخريطة: OpenFreeMap · OpenMapTiles · © OpenStreetMap</p>
   </footer>
 
-  <button id="add" class="fab" type="button">＋ ابعتلنا مكانك</button>
+  <button id="add" class="fab" type="button">ابعتلنا مكانك</button>
 
   <dialog id="add-dialog" aria-labelledby="add-title">
     <form id="add-form" novalidate>
@@ -80,7 +84,7 @@
 
       <fieldset class="where">
         <legend>مكانه على الخريطة</legend>
-        <button id="here" class="ghost" type="button">📍 أنا هناك دلوقتي</button>
+        <button id="here" class="locate" type="button">أنا هناك دلوقتي</button>
         <span id="here-status" class="here-status" role="status"></span>
         <input type="hidden" name="lat">
         <input type="hidden" name="lng">
@@ -103,16 +107,16 @@
 
       <div class="actions">
         <button class="primary" type="submit">ابعت</button>
-        <button id="cancel" class="ghost" type="button">إلغاء</button>
+        <button id="cancel" class="btn" type="button">إلغاء</button>
       </div>
     </form>
 
     <div id="thanks" class="thanks" hidden>
-      <p class="big">وصل، شكراً! 🙏</p>
+      <p class="big">وصل، شكراً!</p>
       <p>هنراجعه وننزله على الخريطة.</p>
       <div class="actions">
         <button id="again" class="primary" type="button">ابعت مكان تاني</button>
-        <button id="done" class="ghost" type="button">تمام</button>
+        <button id="done" class="btn" type="button">تمام</button>
       </div>
     </div>
   </dialog>

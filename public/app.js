@@ -11,12 +11,13 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wide = matchMedia('(min-width: 900px)');
 
 const state = { spots: [], max: 0, here: null, map: null, maplibregl: null, popup: null, hereMarker: null };
+const markers = new Map(); // spot id → price-tag marker on the map
 const $ = (selector) => document.querySelector(selector);
 
 bindFilters();
 bindNear();
 bindForm();
-$('#share-site').href = whatsapp(`أكل رخيص في مصر، بأسعار حقيقية بالجنيه:\n${location.origin}`);
+$('#share-site').href = whatsapp(`رخيص: أكل رخيص في مصر، بأسعار حقيقية بالجنيه\n${location.origin}`);
 loadSpots();
 startMap();
 addEventListener('hashchange', openFromHash);
@@ -76,7 +77,7 @@ function card(spot) {
   li.tabIndex = -1;
 
   const head = el('div', 'spot-head');
-  head.append(el('h3', 'spot-name', spot.name), el('span', 'price', price(spot.cheapest)));
+  head.append(el('h3', 'spot-name', spot.name), amount('price', spot.cheapest));
 
   const where = [spot.area, spot.city].filter(Boolean).join('، ');
   const meta = el('p', 'meta', spot.km == null ? where : `${where} · ${distance(spot.km)}`);
@@ -84,21 +85,21 @@ function card(spot) {
   const items = el('ul', 'items');
   for (const item of spot.items) {
     const row = el('li');
-    row.append(el('span', 'dish', item.dish), el('span', 'dish-price', price(item.price_egp)));
+    row.append(el('span', 'dish', item.dish), amount('dish-price', item.price_egp));
     items.append(row);
   }
 
   const checked = el('p', 'checked', `آخر تأكيد: ${longDay.format(new Date(spot.checked))}`);
 
   const actions = el('div', 'spot-actions');
-  const show = el('button', 'ghost small', 'على الخريطة');
+  const show = el('button', 'btn', 'على الخريطة');
   show.type = 'button';
   show.addEventListener('click', () => focusSpot(spot, { scrollToMap: true }));
   const shareText = `${spot.name} (${where}): ${spot.items[0].dish} بـ ${price(spot.cheapest)}\n${location.origin}/#spot-${spot.id}`;
   actions.append(
     show,
-    link('ghost small', 'الطريق', `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`),
-    link('ghost small', 'ابعته لصاحبك', whatsapp(shareText)),
+    link('btn', 'الطريق', `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`),
+    link('btn', 'ابعته لصاحبك', whatsapp(shareText)),
   );
 
   li.append(head, meta, items, checked, actions);
@@ -131,7 +132,6 @@ async function startMap() {
     state.maplibregl = maplibregl;
     map.on('load', () => {
       arabicLabels(map);
-      addSpotLayers(map);
       state.map = map;
       updateMap(visibleSpots());
       openFromHash();
@@ -152,53 +152,29 @@ function arabicLabels(map) {
   }
 }
 
-function addSpotLayers(map) {
-  map.addSource('spots', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addLayer({
-    id: 'spot-dot',
-    type: 'circle',
-    source: 'spots',
-    paint: { 'circle-radius': 7, 'circle-color': '#c63f26', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
-  });
-  map.addLayer({
-    id: 'spot-price',
-    type: 'symbol',
-    source: 'spots',
-    layout: {
-      'text-field': ['get', 'label'],
-      'text-font': ['Noto Sans Bold'],
-      'text-size': 13,
-      'text-anchor': 'bottom',
-      'text-offset': [0, -0.8],
-    },
-    paint: { 'text-color': '#8f2a17', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
-  });
-  // A bigger, invisible circle so pins are easy to tap.
-  map.addLayer({
-    id: 'spot-hit',
-    type: 'circle',
-    source: 'spots',
-    paint: { 'circle-radius': 18, 'circle-opacity': 0 },
-  });
-  map.on('click', 'spot-hit', (event) => {
-    const spot = state.spots.find((s) => s.id === event.features[0].properties.id);
-    if (spot) focusSpot(spot, { scrollToCard: wide.matches });
-  });
-  map.on('mouseenter', 'spot-hit', () => (map.getCanvas().style.cursor = 'pointer'));
-  map.on('mouseleave', 'spot-hit', () => (map.getCanvas().style.cursor = ''));
-}
-
+// Price tags on the map: one small button per visible spot, its tip on the spot.
 function updateMap(list) {
-  const source = state.map?.getSource('spots');
-  if (!source) return;
-  source.setData({
-    type: 'FeatureCollection',
-    features: list.map((spot) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [spot.lng, spot.lat] },
-      properties: { id: spot.id, label: `${egp.format(spot.cheapest)}ج` },
-    })),
-  });
+  const { map, maplibregl } = state;
+  if (!map) return;
+  const visible = new Set(list.map((spot) => spot.id));
+  for (const [id, marker] of markers) {
+    if (!visible.has(id)) { marker.remove(); markers.delete(id); }
+  }
+  for (const spot of list) {
+    if (markers.has(spot.id)) continue;
+    const pin = el('button', 'pin', `${egp.format(spot.cheapest)}ج`);
+    pin.type = 'button';
+    pin.setAttribute('aria-label', `${spot.name}: ${price(spot.cheapest)}`);
+    pin.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const current = state.spots.find((s) => s.id === spot.id);
+      if (current) focusSpot(current, { scrollToCard: wide.matches });
+    });
+    const marker = new maplibregl.Marker({ element: pin, anchor: 'bottom', offset: [0, -6] })
+      .setLngLat([spot.lng, spot.lat])
+      .addTo(map);
+    markers.set(spot.id, marker);
+  }
 }
 
 function focusSpot(spot, { scrollToMap = false, scrollToCard = false, instant = false } = {}) {
@@ -206,6 +182,7 @@ function focusSpot(spot, { scrollToMap = false, scrollToCard = false, instant = 
   const spotCard = document.getElementById(`spot-${spot.id}`);
   for (const active of document.querySelectorAll('.spot.active')) active.classList.remove('active');
   spotCard?.classList.add('active');
+  for (const [id, marker] of markers) marker.getElement().classList.toggle('active', id === spot.id);
   if (scrollToCard) spotCard?.scrollIntoView({ behavior, block: 'nearest' });
   if (scrollToMap && !wide.matches) $('.map-pane').scrollIntoView({ behavior, block: 'start' });
 
@@ -222,7 +199,7 @@ function focusSpot(spot, { scrollToMap = false, scrollToCard = false, instant = 
     box.append(more);
   }
   state.popup?.remove();
-  state.popup = new maplibregl.Popup({ offset: 14, closeButton: false, maxWidth: '240px' })
+  state.popup = new maplibregl.Popup({ offset: 40, closeButton: false, maxWidth: '240px' })
     .setLngLat([spot.lng, spot.lat])
     .setDOMContent(box)
     .addTo(map);
@@ -379,6 +356,13 @@ function setStatus(text) {
 
 function price(n) {
   return `${egp.format(n)} جنيه`;
+}
+
+// "٢٥" with a small "ج" after it, for prices on cards.
+function amount(className, n) {
+  const span = el('span', className);
+  span.append(egp.format(n), el('span', 'unit', 'ج'));
+  return span;
 }
 
 function whatsapp(text) {
