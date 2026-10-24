@@ -23,7 +23,6 @@
   <header class="top">
     <div class="brand">
       <h1 class="mark">رخيص</h1>
-      <span class="url">rkhees.pages.dev</span>
       <p class="tagline">ارخص و احلى أكل ف مصر, من تحت 150 جنيه</p>
     </div>
     <a id="share-site" class="share" href="https://wa.me/" target="_blank" rel="noopener" aria-label="شارك الموقع على واتساب">شاركه</a>
@@ -33,7 +32,10 @@
     <section class="map-pane" aria-label="الخريطة">
       <div id="map" class="map"></div>
       <p class="map-off" hidden>الخريطة مش راضية تفتح. القايمة شغالة عادي.</p>
-      <button id="near" class="near" type="button">قريب مني</button>
+      <button id="near" class="near" type="button" aria-pressed="false">
+        <svg class="near-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.3" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>قريب مني</span>
+      </button>
     </section>
 
     <section class="list-pane" aria-labelledby="list-title">

@@ -44,8 +44,7 @@ button, input, textarea { font: inherit; color: inherit; }
   padding: 12px 16px; background: var(--bg); border-bottom: max(1px, var(--b)) solid var(--line);
 }
 .mark { font-family: var(--f-display); font-weight: 400; font-size: calc(34px * var(--ds)); line-height: 1; color: var(--accent-text); }
-.url { display: block; margin-top: 5px; font: 500 11px/1 var(--f-body); direction: ltr; unicode-bidi: isolate; text-align: right; opacity: 0.78; }
-.tagline { margin-top: 4px; font-size: 0.85em; opacity: 0.88; }
+.tagline { margin-top: 6px; font-size: 0.85em; opacity: 0.88; }
 .share {
   flex: none; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 0.85em;
   border: max(1px, var(--b)) solid currentColor; border-radius: var(--r-chip); padding: 4px 12px;
@@ -82,13 +81,17 @@ button, input, textarea { font: inherit; color: inherit; }
 .map-pane { position: relative; }
 .map { height: 46vh; min-height: 260px; background: #f1f2ef; }
 .map-off { padding: 24px 16px; color: var(--muted); text-align: center; }
+/* Map tools share one look: white, ink outline, square corners, the hard shadow from the cards and pins. */
 .near {
   position: absolute; top: 10px; inset-inline-start: 10px; z-index: 2;
-  display: flex; align-items: center; gap: 6px; padding: 4px 11px; font-size: 0.85em;
-  background: var(--surface); color: var(--ink); border: max(1px, var(--b)) solid var(--line); border-radius: var(--r-chip);
-  box-shadow: var(--shadow); cursor: pointer;
+  display: flex; align-items: center; gap: 6px; padding: 6px 10px 5px;
+  background: var(--surface); color: var(--ink); border: 1.5px solid var(--ink); border-radius: var(--r-sm);
+  font: 400 calc(13px * var(--ds))/1 var(--f-display); box-shadow: var(--shadow); cursor: pointer;
 }
-.near::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2a6ef0; box-shadow: 0 0 0 3px rgb(42 110 240 / 25%); }
+.near-icon { width: 17px; height: 17px; flex: none; }
+.near[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.map-pane .maplibregl-ctrl-group:not(:empty) { border: 1.5px solid var(--ink); border-radius: var(--r-sm); box-shadow: var(--shadow); overflow: hidden; }
+.map-pane .maplibregl-ctrl-group button + button { border-top: 1px solid var(--ink); }
 
 .list-pane { padding: 12px 16px 96px; display: grid; gap: var(--gap); align-content: start; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }

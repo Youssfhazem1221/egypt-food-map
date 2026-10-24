@@ -212,6 +212,7 @@ function bindNear() {
     setStatus('بنحدد مكانك…');
     locate((here) => {
       state.here = here;
+      $('#near').setAttribute('aria-pressed', 'true');
       render();
       const { map, maplibregl } = state;
       if (!map) return;
