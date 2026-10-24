@@ -1,20 +1,22 @@
 // Cheap-food map: loads spots from /api/spots, shows them on the map and in the
 // list, and sends the "ابعتلنا مكانك" form to /api/submissions.
+import { KINDS, KIND_LABEL } from '/kinds.js';
+import { priceCheck } from '/checks.js';
 
 const MAPLIBRE = '/vendor/maplibre-gl-6.12.0/maplibre-gl.mjs';
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const CAIRO = [31.2357, 30.0444]; // [lng, lat]
 
 const egp = new Intl.NumberFormat('ar-EG');
-const longDay = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wide = matchMedia('(min-width: 900px)');
 
-const state = { spots: [], max: 0, here: null, map: null, maplibregl: null, popup: null, hereMarker: null };
+const state = { spots: [], max: 0, kind: '', here: null, map: null, maplibregl: null, popup: null, hereMarker: null };
 const markers = new Map(); // spot id → price-tag marker on the map
 const $ = (selector) => document.querySelector(selector);
 
 bindFilters();
+bindKinds();
 bindNear();
 bindForm();
 $('#share-site').href = whatsapp(`رخيص: أكل رخيص في مصر، بأسعار حقيقية بالجنيه\n${location.origin}`);
@@ -29,11 +31,7 @@ async function loadSpots() {
     const res = await fetch('/api/spots');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { spots } = await res.json();
-    state.spots = spots.map((spot) => ({
-      ...spot,
-      cheapest: spot.items[0].price_egp,
-      checked: spot.items.reduce((latest, item) => (item.checked_on > latest ? item.checked_on : latest), ''),
-    }));
+    state.spots = spots.map((spot) => ({ ...spot, cheapest: spot.items[0].price_egp }));
     render();
     openFromHash();
   } catch (err) {
@@ -56,8 +54,30 @@ function bindFilters() {
   }
 }
 
+// Food-type chips (كشري، فول وطعمية…) above the list, and the same list in the form.
+function bindKinds() {
+  const box = $('#kinds');
+  const chips = [['', 'كل الأكل'], ...KINDS].map(([id, label]) => {
+    const chip = el('button', id ? 'chip' : 'chip on', label);
+    chip.type = 'button';
+    chip.setAttribute('aria-pressed', String(!id));
+    chip.addEventListener('click', () => {
+      state.kind = id;
+      for (const other of chips) {
+        other.classList.toggle('on', other === chip);
+        other.setAttribute('aria-pressed', String(other === chip));
+      }
+      render();
+    });
+    return chip;
+  });
+  box.replaceChildren(...chips);
+  const select = $('#kind-select');
+  for (const [id, label] of KINDS) select.append(new Option(label, id));
+}
+
 function visibleSpots() {
-  const list = state.spots.filter((spot) => !state.max || spot.cheapest <= state.max);
+  const list = state.spots.filter((spot) => (!state.max || spot.cheapest <= state.max) && (!state.kind || spot.kind === state.kind));
   if (!state.here) return list.sort((a, b) => a.cheapest - b.cheapest);
   return list.map((spot) => ({ ...spot, km: km(state.here, spot) })).sort((a, b) => a.km - b.km);
 }
@@ -77,10 +97,15 @@ function card(spot) {
   li.tabIndex = -1;
 
   const head = el('div', 'spot-head');
-  head.append(el('h3', 'spot-name', spot.name), amount('price', spot.cheapest));
+  const name = el('h3', 'spot-name');
+  const page = el('a', '', spot.name);
+  page.href = `/spot/${spot.id}`;
+  name.append(page);
+  head.append(name, amount('price', spot.cheapest));
 
   const where = [spot.area, spot.city].filter(Boolean).join('، ');
-  const meta = el('p', 'meta', spot.km == null ? where : `${where} · ${distance(spot.km)}`);
+  const metaParts = [where, KIND_LABEL[spot.kind], spot.km == null ? null : distance(spot.km)].filter(Boolean);
+  const meta = el('p', 'meta', metaParts.join(' · '));
 
   const items = el('ul', 'items');
   for (const item of spot.items) {
@@ -89,20 +114,21 @@ function card(spot) {
     items.append(row);
   }
 
-  const checked = el('p', 'checked', `آخر تأكيد: ${longDay.format(new Date(spot.checked))}`);
+  const check = el('div', 'check');
+  priceCheck(check, { id: spot.id, checked: spot.checked, verified: spot.verified, dishes: spot.items.map((i) => i.dish) });
 
   const actions = el('div', 'spot-actions');
   const show = el('button', 'btn', 'على الخريطة');
   show.type = 'button';
   show.addEventListener('click', () => focusSpot(spot, { scrollToMap: true }));
-  const shareText = `${spot.name} (${where}): ${spot.items[0].dish} بـ ${price(spot.cheapest)}\n${location.origin}/#spot-${spot.id}`;
+  const shareText = `${spot.name} (${where}): ${spot.items[0].dish} بـ ${price(spot.cheapest)}\n${location.origin}/spot/${spot.id}`;
   actions.append(
     show,
     link('btn', 'الطريق', `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`),
     link('btn', 'ابعته لصاحبك', whatsapp(shareText)),
   );
 
-  li.append(head, meta, items, checked, actions);
+  li.append(head, meta, items, check, actions);
   return li;
 }
 

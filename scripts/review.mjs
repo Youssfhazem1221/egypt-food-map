@@ -1,18 +1,23 @@
-// Review what people sent through the form, from this PC.
+// Review what people sent, from this PC.
 //
-//   npm run review                               list pending submissions
+//   npm run review                               list new spots and new prices waiting for review
 //   npm run review -- spots                      list spots on the map
-//   npm run review -- approve 12                 put #12 on the map (it needs a location)
-//   npm run review -- approve 12 --lat 30.0444 --lng 31.2357 --kind "كشري"
+//   npm run review -- approve 12                 put submission #12 on the map (it needs a location)
+//   npm run review -- approve 12 --lat 30.0444 --lng 31.2357 --kind koshary
 //   npm run review -- approve 12 --spot 3        add #12's price to spot #3 instead of a new spot
 //   npm run review -- approve 12 --team          we checked this price ourselves
 //   npm run review -- reject 12
+//   npm run review -- approve-price 7            "السعر اتغير" #7: the new price goes live
+//   npm run review -- reject-price 7
+//   npm run review -- kind 3 ful                 set spot #3's food type
 //
+// Food types: koshary ful liver shawarma hawawshi feteer fish sweets other (public/kinds.js).
 // Add --local to use the local dev database instead of the live one.
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { KINDS, isKind } from '../public/kinds.js';
 import { EGYPT } from '../src/validate.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -30,11 +35,12 @@ const { values: opt, positionals } = parseArgs({
     team: { type: 'boolean' },
   },
 });
-const [command = 'list', idArg] = positionals;
+const [command = 'list', idArg, extraArg] = positionals;
 
 switch (command) {
   case 'list':
     list();
+    listPrices();
     break;
   case 'spots':
     spots();
@@ -45,24 +51,81 @@ switch (command) {
   case 'reject':
     reject(toId(idArg, 'submission id'));
     break;
+  case 'approve-price':
+    approvePrice(toId(idArg, 'price report id'));
+    break;
+  case 'reject-price':
+    rejectPrice(toId(idArg, 'price report id'));
+    break;
+  case 'kind':
+    setKind(toId(idArg, 'spot id'), extraArg);
+    break;
   default:
-    fail(`Unknown command "${command}". Use list, spots, approve <id> or reject <id>.`);
+    fail(`Unknown command "${command}". Use list, spots, approve, reject, approve-price, reject-price or kind.`);
 }
 
 function list() {
   const rows = d1(
-    `SELECT id, created_at, spot_name, area, city, dish, price_egp, lat, lng, maps_url, note
+    `SELECT id, created_at, spot_name, area, city, dish, price_egp, lat, lng, maps_url, note, kind
        FROM submissions WHERE status = 'pending' ORDER BY id`,
   );
-  if (!rows.length) return console.log('No pending submissions.');
+  if (!rows.length) return console.log('No new spots waiting.');
   for (const r of rows) {
     const where = r.lat != null ? `${r.lat}, ${r.lng}` : r.maps_url ?? 'no location: find it, then approve with --lat and --lng';
     console.log(`#${r.id}  ${r.created_at.slice(0, 10)}  ${r.spot_name} · ${r.area}${r.city ? ` · ${r.city}` : ''}`);
-    console.log(`     ${r.dish}: ${r.price_egp} EGP`);
+    console.log(`     ${r.dish}: ${r.price_egp} EGP${r.kind ? `  [${r.kind}]` : ''}`);
     console.log(`     ${where}`);
     if (r.note) console.log(`     note: ${r.note}`);
   }
-  console.log(`\n${rows.length} pending. Approve: npm run review -- approve <id>   Reject: npm run review -- reject <id>`);
+  console.log(`\n${rows.length} new spots. Approve: npm run review -- approve <id>   Reject: npm run review -- reject <id>`);
+}
+
+// "السعر اتغير" reports.
+function listPrices() {
+  const rows = d1(
+    `SELECT c.id, c.created_at, c.dish, c.price_egp, s.id AS spot_id, s.name, s.area,
+            (SELECT p.price_egp FROM prices p WHERE p.spot_id = s.id AND p.dish = c.dish
+              ORDER BY p.checked_on DESC, p.id DESC LIMIT 1) AS was
+       FROM price_checks c JOIN spots s ON s.id = c.spot_id
+      WHERE c.kind = 'update' AND c.status = 'pending' ORDER BY c.id`,
+  );
+  if (!rows.length) return console.log('No new prices waiting.');
+  for (const r of rows) {
+    const change = r.was == null ? 'new dish' : `was ${r.was} EGP`;
+    console.log(`price #${r.id}  ${r.created_at.slice(0, 10)}  spot #${r.spot_id} ${r.name} · ${r.area}`);
+    console.log(`     ${r.dish}: ${r.price_egp} EGP (${change})`);
+  }
+  console.log(`\n${rows.length} new prices. Approve: npm run review -- approve-price <id>   Reject: npm run review -- reject-price <id>`);
+}
+
+function approvePrice(id) {
+  // One call, so the new price and the "applied" mark land together.
+  const done = d1(
+    `INSERT INTO prices (spot_id, dish, price_egp, checked_on, source)
+       SELECT spot_id, dish, price_egp, substr(created_at, 1, 10), 'submission'
+         FROM price_checks WHERE id = ${id} AND kind = 'update' AND status = 'pending'
+     RETURNING spot_id;
+     UPDATE price_checks SET status = 'applied', reviewed_at = ${NOW}
+      WHERE id = ${id} AND kind = 'update' AND status = 'pending';`,
+  );
+  if (!done.length) fail(`price #${id} is not a pending price report.`);
+  console.log(`✓ price #${id} is live on spot #${done[0].spot_id}.`);
+}
+
+function rejectPrice(id) {
+  const done = d1(
+    `UPDATE price_checks SET status = 'rejected', reviewed_at = ${NOW}
+      WHERE id = ${id} AND kind = 'update' AND status = 'pending' RETURNING id`,
+  );
+  if (!done.length) fail(`price #${id} is not a pending price report.`);
+  console.log(`✓ price #${id} rejected.`);
+}
+
+function setKind(spotId, kind) {
+  if (!isKind(kind)) fail(`Food type must be one of: ${KINDS.map(([k]) => k).join(', ')}.`);
+  const done = d1(`UPDATE spots SET kind = '${kind}' WHERE id = ${spotId} RETURNING id`);
+  if (!done.length) fail(`Spot #${spotId} doesn't exist.`);
+  console.log(`✓ spot #${spotId} is now "${kind}".`);
 }
 
 function spots() {
@@ -96,10 +159,12 @@ function approve(id) {
     if (lat == null || lng == null) {
       fail(`#${id} has no location. Open ${sub.maps_url ?? 'Google Maps'}, then add --lat and --lng.`);
     }
+    if (opt.kind && !isKind(opt.kind)) fail(`--kind must be one of: ${KINDS.map(([k]) => k).join(', ')}.`);
+    const kind = opt.kind || (isKind(sub.kind) ? sub.kind : null);
     spotId = d1(
       `INSERT INTO spots (name, area, city, lat, lng, kind, maps_url)
        VALUES (${text(sub.spot_name)}, ${text(sub.area)}, ${text(sub.city ?? 'القاهرة')}, ${lat}, ${lng},
-               ${opt.kind ? text(opt.kind) : 'NULL'}, ${sub.maps_url ? text(sub.maps_url) : 'NULL'})
+               ${kind ? text(kind) : 'NULL'}, ${sub.maps_url ? text(sub.maps_url) : 'NULL'})
        RETURNING id`,
     )[0].id;
   }

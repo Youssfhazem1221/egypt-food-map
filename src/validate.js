@@ -1,5 +1,6 @@
-// Checks what people send through the "ابعتلنا مكانك" form.
+// Checks what people send: the "ابعتلنا مكانك" form and "السعر لسه كده؟".
 // Pure functions, so they run in the Worker and in `npm test`.
+import { isKind } from '../public/kinds.js';
 
 // Egypt's bounding box, with a small margin. The database checks the same range.
 export const EGYPT = { minLat: 21.5, maxLat: 32, minLng: 24.5, maxLng: 37 };
@@ -21,11 +22,11 @@ export function toLatinDigits(value) {
   return String(value).replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
 }
 
-// Drops control characters and bidi overrides (they can disguise text), and squashes spaces.
+// Drops control characters and bidi controls (they can disguise text), and squashes spaces.
 function clean(value) {
   if (value == null) return '';
   return String(value)
-    .replace(/[\u0000-\u001f\u007f‪-‮⁦-⁩]/g, ' ')
+    .replace(/[\p{Cc}\p{Bidi_Control}]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -34,6 +35,16 @@ function number(value) {
   if (value == null || value === '') return null;
   const n = Number(toLatinDigits(clean(value)));
   return Number.isFinite(n) ? n : NaN;
+}
+
+// "25", "٢٥", "25 جنيه", "12.5" and "١٢٫٥" all work; stored as whole pounds. NaN if it isn't a price.
+export function parsePrice(value) {
+  const text = toLatinDigits(clean(value)).replace(/٫/g, '.').replace(/[^\d.]/g, '');
+  return text ? Math.round(Number(text)) : NaN;
+}
+
+function priceOk(price) {
+  return Number.isInteger(price) && price >= 1 && price <= MAX_PRICE_EGP;
 }
 
 export function validateSubmission(input) {
@@ -48,11 +59,14 @@ export function validateSubmission(input) {
     value[field] = text || null;
   }
 
-  // "25", "٢٥", "25 جنيه", "12.5" and "١٢٫٥" all work; stored as whole pounds.
-  const priceText = toLatinDigits(clean(input.price_egp)).replace(/٫/g, '.').replace(/[^\d.]/g, '');
-  const price = Math.round(Number(priceText));
-  if (!Number.isInteger(price) || price < 1 || price > MAX_PRICE_EGP) errors.push('price_egp');
+  const price = parsePrice(input.price_egp);
+  if (!priceOk(price)) errors.push('price_egp');
   value.price_egp = price;
+
+  // Food type is optional, but only from the fixed list.
+  const kind = clean(input.kind);
+  if (kind && !isKind(kind)) errors.push('kind');
+  value.kind = kind || null;
 
   // Location is optional, but it comes as a pair and must be inside Egypt.
   const lat = number(input.lat);
@@ -80,4 +94,27 @@ export function validateSubmission(input) {
   }
 
   return { ok: errors.length === 0, errors: [...new Set(errors)], value };
+}
+
+// "السعر لسه كده؟": kind "confirm" (prices still right) or "update" (a dish has a new price).
+export function validateCheck(input) {
+  if (!input || typeof input !== 'object') return { ok: false, errors: ['body'], value: null };
+
+  const errors = [];
+  const spotId = Number(input.spot_id);
+  if (!Number.isSafeInteger(spotId) || spotId < 1) errors.push('spot_id');
+  const kind = input.kind === 'confirm' || input.kind === 'update' ? input.kind : null;
+  if (!kind) errors.push('kind');
+
+  const value = { spot_id: spotId, kind, dish: null, price_egp: null };
+  if (kind === 'update') {
+    const dish = clean(input.dish);
+    if (dish.length < 2 || dish.length > 60) errors.push('dish');
+    value.dish = dish;
+    const price = parsePrice(input.price_egp);
+    if (!priceOk(price)) errors.push('price_egp');
+    value.price_egp = price;
+  }
+
+  return { ok: errors.length === 0, errors, value };
 }

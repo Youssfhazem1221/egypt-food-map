@@ -46,9 +46,22 @@
         <button class="chip" type="button" data-max="100" aria-pressed="false">لحد ١٠٠ ج</button>
         <button class="chip" type="button" data-max="150" aria-pressed="false">لحد ١٥٠ ج</button>
       </div>
+      <div id="kinds" class="filters kinds" role="group" aria-label="نوع الأكل"></div>
       <p id="status" class="status" role="status">بنحمّل الأماكن…</p>
       <ol id="spots" class="spots"></ol>
       <noscript><p class="status">الموقع محتاج JavaScript عشان يشتغل.</p></noscript>
+
+      <!-- Keep in step with RULES in src/spot-page.js. -->
+      <section class="rules" aria-labelledby="rules-title">
+        <h2 id="rules-title" class="rules-title">ضد الغلا</h2>
+        <p>رخيص خريطة لأكل حقيقي بأسعار حقيقية، من الناس للناس.</p>
+        <ul>
+          <li>مفيش سلاسل كبيرة: عربيات ومحلات الحتة بس.</li>
+          <li>مفيش ترتيب بفلوس: محدش يقدر يدفع عشان يطلع فوق.</li>
+          <li>كل سعر عليه تاريخ آخر مرة اتأكدنا منه.</li>
+          <li>أي حد يقدر يضيف مكان أو يصحح سعر، وإحنا بنراجع قبل ما ينزل.</li>
+        </ul>
+      </section>
     </section>
   </main>
 
@@ -83,6 +96,9 @@
           <input name="price_egp" required inputmode="numeric" maxlength="8" placeholder="مثلاً: ٢٥" autocomplete="off">
         </label>
       </div>
+      <label>نوع الأكل <small>(اختياري)</small>
+        <select name="kind" id="kind-select"><option value="">مش متأكد</option></select>
+      </label>
 
       <fieldset class="where">
         <legend>مكانه على الخريطة</legend>
@@ -104,7 +120,7 @@
         <input name="website" tabindex="-1" autocomplete="off">
       </label>
 
-      <p class="hint">ماتكتبش رقم تليفون أو أي بيانات شخصية.</p>
+      <p class="hint">مش بنضيف السلاسل الكبيرة. وماتكتبش رقم تليفون أو أي بيانات شخصية.</p>
       <p id="form-error" class="form-error" role="alert"></p>
 
       <div class="actions">

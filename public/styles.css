@@ -194,6 +194,54 @@ input::placeholder, textarea::placeholder { color: #7d8f84; }
 .thanks .big { font-family: var(--f-display); font-size: calc(26px * var(--ds)); line-height: 1.1; }
 .hp { position: absolute; inset-inline-start: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
+select {
+  width: 100%; min-height: 38px; padding: 6px 10px; font: inherit; font-weight: 400;
+  border: max(1px, var(--b)) solid var(--line); border-radius: var(--r-input); background: var(--bg); color: var(--ink);
+}
+
+/* ---------- food types ---------- */
+.kinds { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.kinds::-webkit-scrollbar { display: none; }
+.kinds .chip { flex: none; font-size: 0.82em; padding: 2px 10px; }
+
+/* ---------- "السعر لسه كده؟" ---------- */
+.check { display: grid; gap: 6px; margin-top: 7px; }
+.check .checked { margin-top: 0; }
+.check-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85em; }
+.check-q { font-weight: 600; }
+.check-ask .btn { min-height: 32px; padding: 4px 12px; font-size: 0.95em; }
+.check-form { display: grid; gap: 8px; padding: 10px; background: var(--bg); border: 1px dashed var(--ink); border-radius: var(--r); }
+.check-form label { font-size: 0.85em; }
+.check-done { font-size: 0.85em; color: var(--ok); font-weight: 600; }
+.check-done:empty { display: none; }
+.primary.small { padding: 6px 16px; font-size: calc(13px * var(--ds)); }
+.spot-name a { color: inherit; text-decoration: none; }
+.spot-name a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+
+/* ---------- "ضد الغلا" ---------- */
+.rules {
+  margin-top: 8px; padding: 12px 14px; display: grid; gap: 6px;
+  background: var(--surface); border: 1.5px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow);
+}
+.rules-title { font-family: var(--f-display); font-weight: 400; font-size: calc(20px * var(--ds)); line-height: 1.1; color: var(--accent-text); }
+.rules ul { margin: 0; padding-inline-start: 18px; display: grid; gap: 2px; font-size: 0.9em; }
+.rules li::marker { color: var(--accent-text); }
+
+/* ---------- spot page ---------- */
+.mark-link { text-decoration: none; }
+.page { max-width: 640px; margin: 0 auto; padding: 14px 16px 40px; display: grid; gap: 14px; }
+.crumbs { font-size: 0.85em; color: var(--muted); }
+.crumbs a { color: var(--ink); }
+.spot-big .spot-name { font-size: calc(1.6em * var(--ds)); }
+.nearby h2 { font-family: var(--f-display); font-weight: 400; font-size: calc(18px * var(--ds)); }
+.nearby ol { list-style: none; margin: 6px 0 0; padding: 0; }
+.nearby a { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; border-top: 1px dashed var(--ink); color: var(--ink); text-decoration: none; }
+.nearby a:hover .near-name { text-decoration: underline; }
+.near-name { font-weight: 700; }
+.near-meta { flex: 1; min-width: 0; color: var(--muted); font-size: 0.85em; }
+@media (min-width: 900px) { body.spot-page { height: auto; display: block; } }
+.spot-page .foot { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
 .notfound { display: grid; gap: 12px; justify-items: center; text-align: center; padding-top: 15vh; }
 .notfound h1 { font-family: var(--f-display); font-weight: 400; font-size: calc(30px * var(--ds)); }
 
